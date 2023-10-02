@@ -1,6 +1,7 @@
 package fsync
 
 import (
+	"crypto/md5"
 	"fmt"
 	"io"
 	"log"
@@ -25,14 +26,16 @@ func New(src, dst string) *fsync {
 func (fsync *fsync) Copy() error {
 	src := fsync.src
 	dst := fsync.dst
+	cache := fsync.cache
 
-	copyTree(src, dst)
+	copyAll(src, dst, cache)
+
+	// fmt.Println(cache)
 
 	return nil
 }
 
-func copyTree(src, dst string) error {
-
+func copyAll(src string, dst string, cache map[string][2]bool) error {
 	files, err := os.ReadDir(src)
 
 	if err != nil {
@@ -48,21 +51,21 @@ func copyTree(src, dst string) error {
 			return err
 		}
 
-		// name := fInfo.Name()
-		// modTime := fInfo.ModTime()
-		// size := fInfo.Size()
-		// mode := fInfo.Mode()
+		name := fInfo.Name()
+		modTime := fInfo.ModTime()
+		size := fInfo.Size()
+		mode := fInfo.Mode()
 
-		// hash := hash(fmt.Sprintf(name, modTime, size, mode))
+		hash := hash(fmt.Sprintf(name, modTime, size, mode))
 
-		// fsync.cache[hash] = [2]bool{true, false}
+		cache[hash] = [2]bool{true, false}
 
 		switch fInfo.Mode() & os.ModeType {
 		case os.ModeDir:
 			if err := makeDir(dstPath, 0755); err != nil {
 				return err
 			}
-			if err := copyTree(srcPath, dstPath); err != nil {
+			if err := copyAll(srcPath, dstPath, cache); err != nil {
 				return err
 			}
 		case os.ModeSymlink:
@@ -74,7 +77,6 @@ func copyTree(src, dst string) error {
 				return err
 			}
 		}
-
 	}
 
 	return nil
@@ -127,11 +129,11 @@ func copySymLink(src, dst string) error {
 	return os.Symlink(link, dst)
 }
 
-// func hash(str string) string {
-// 	h := md5.New()
-// 	io.WriteString(h, str)
-// 	return fmt.Sprintf("%x", h.Sum(nil))
-// }
+func hash(str string) string {
+	h := md5.New()
+	io.WriteString(h, str)
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
 
 func Hello() {
 	fmt.Println("Hello")
