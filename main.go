@@ -9,6 +9,6 @@ func main() {
 	f2 := "/Users/roman/Desktop/2"
 
 	syncher := fsync.New(f1, f2)
-	syncher.Start()
+	syncher.Copy()
 	// syncher.CopyNext()
 }
